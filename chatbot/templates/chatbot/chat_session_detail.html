@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ session.title }}</h2>
+                    <div class="text-muted">
+                        <small>
+                            <i class="fas fa-clock me-1"></i>
+                            Created: {{ session.created_at|date:"F d, Y H:i" }}
+                        </small>
+                        <span class="mx-2">•</span>
+                        <small>
+                            <i class="fas fa-edit me-1"></i>
+                            Updated: {{ session.updated_at|date:"F d, Y H:i" }}
+                        </small>
+                        <span class="mx-2">•</span>
+                        <small>
+                            <i class="fas fa-comments me-1"></i>
+                            {{ messages.count }} message{{ messages.count|pluralize }}
+                        </small>
+                    </div>
+                </div>
+                <div>
+                    <a href="{% url 'chatbot:chat' %}?new=1" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>New Chat
+                    </a>
+                    <a href="{% url 'chatbot:chat' %}" class="btn btn-primary">
+                        <i class="fas fa-comments me-1"></i>Continue Chat
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Conversation History
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if messages %}
+                    <div class="chat-history p-4" style="max-height: 70vh; overflow-y: auto;">
+                        {% for message in messages %}
+                        <div class="message-item mb-4">
+                            <div class="d-flex {% if message.message_type == 'human' %}justify-content-end{% else %}justify-content-start{% endif %}">
+                                <div class="message-bubble" style="max-width: 80%;">
+                                    {% if message.message_type == 'ai' %}
+                                    <div class="mb-2">
+                                        {% if message.agent_type == 'supervisor' %}
+                                        <span class="badge bg-danger">🎯 Supervisor</span>
+                                        {% elif message.agent_type == 'researcher' %}
+                                        <span class="badge bg-info">🔍 Researcher</span>
+                                        {% elif message.agent_type == 'analyst' %}
+                                        <span class="badge bg-primary">📊 Analyst</span>
+                                        {% elif message.agent_type == 'writer' %}
+                                        <span class="badge bg-success">✍️ Writer</span>
+                                        {% elif message.agent_type == 'system' %}
+                                        <span class="badge bg-dark">🤖 System</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">🤖 AI</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="p-3 rounded-3 {% if message.message_type == 'human' %}bg-primary text-white{% else %}bg-light border{% endif %}">
+                                        <div class="message-content">
+                                            {{ message.content|linebreaks }}
+                                        </div>
+                                    </div>
+
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ message.timestamp|date:"M d, Y H:i" }}
+                                    </small>
+
+                                    {% if message.final_report %}
+                                    <div class="mt-3 p-3 border rounded-3 bg-warning bg-opacity-10">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-file-alt text-warning me-2"></i>
+                                            <h6 class="mb-0 fw-bold">Final Report</h6>
+                                        </div>
+                                        <div class="report-content">
+                                            <pre class="mb-0 text-wrap" style="white-space: pre-wrap; font-family: inherit; font-size: 0.9rem;">{{ message.final_report }}</pre>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if message.research_data and message.research_data != '' %}
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#research-{{ message.id }}">
+                                            <i class="fas fa-search me-1"></i>View Research Data
+                                        </button>
+                                        <div class="collapse mt-2" id="research-{{ message.id }}">
+                                            <div class="card card-body bg-info bg-opacity-10">
+                                                <small>{{ message.research_data|linebreaks }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if message.analysis_data and message.analysis_data != '' %}
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#analysis-{{ message.id }}">
+                                            <i class="fas fa-chart-bar me-1"></i>View Analysis
+                                        </button>
+                                        <div class="collapse mt-2" id="analysis-{{ message.id }}">
+                                            <div class="card card-body bg-primary bg-opacity-10">
+                                                <small>{{ message.analysis_data|linebreaks }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-comments fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Messages Found</h5>
+                        <p class="text-muted">This session doesn't have any messages yet.</p>
+                        <a href="{% url 'chatbot:chat' %}" class="btn btn-primary">
+                            <i class="fas fa-comments me-2"></i>Start Chatting
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if messages %}
+                <div class="card-footer bg-light">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="fw-bold text-primary">{{ messages|length }}</div>
+                            <small class="text-muted">Total Messages</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="fw-bold text-info">{{ unique_agents }}</div>
+                            <small class="text-muted">Agents Used</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="fw-bold text-success">{{ workflow_count }}</div>
+                            <small class="text-muted">Workflows</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="fw-bold {% if session.is_active %}text-success{% else %}text-secondary{% endif %}">
+                                {% if session.is_active %}Active{% else %}Archived{% endif %}
+                            </div>
+                            <small class="text-muted">Status</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-scroll to bottom of chat history
+        const chatHistory = document.querySelector('.chat-history');
+        if (chatHistory) {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Add copy functionality to report content
+        document.querySelectorAll('.report-content pre').forEach(function(pre) {
+            pre.style.position = 'relative';
+            pre.style.cursor = 'pointer';
+            pre.title = 'Click to copy';
+
+            pre.addEventListener('click', function() {
+                navigator.clipboard.writeText(this.textContent).then(function() {
+                    // Show temporary feedback
+                    const originalBg = pre.style.backgroundColor;
+                    pre.style.backgroundColor = '#d4edda';
+                    setTimeout(() => {
+                        pre.style.backgroundColor = originalBg;
+                    }, 500);
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

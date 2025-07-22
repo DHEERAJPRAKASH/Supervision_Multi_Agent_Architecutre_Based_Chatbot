@@ -1,0 +1,14 @@
+<!-- In the empty state section, update the button -->
+<a href="{% url 'chatbot:chat' %}?new=1" class="btn btn-primary btn-lg">
+    <i class="fas fa-plus me-2"></i>Start First Chat
+</a>
+
+<!-- In the individual session cards, update the continue button -->
+<a href="{% url 'chatbot:chat_session' session.id %}"
+   class="btn btn-sm btn-outline-primary">
+    <i class="fas fa-eye me-1"></i>View
+</a>
+<a href="{% url 'chatbot:chat' %}?new=1"
+   class="btn btn-sm btn-primary">
+    <i class="fas fa-comments me-1"></i>New Chat
+</a>

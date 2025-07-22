@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary mb-3">About Multi-Agent AI System</h1>
+                <p class="lead">
+                    Discover how our intelligent agents collaborate to solve complex problems through
+                    structured workflows and advanced AI coordination.
+                </p>
+            </div>
+
+            <!-- Workflow Diagram -->
+            <div class="card mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-project-diagram me-2"></i>System Architecture</h4>
+                </div>
+                <div class="card-body text-center">
+                    {% if workflow_diagram %}
+                    <img src="{% get_media_prefix %}{{ workflow_diagram }}"
+                         alt="Multi-Agent Workflow Diagram"
+                         class="img-fluid rounded shadow">
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Agent Descriptions -->
+            <div class="row g-4 mb-5">
+                {% for feature in features %}
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <span class="display-1">{{ feature.icon }}</span>
+                            </div>
+                            <h5 class="card-title text-primary">{{ feature.name }}</h5>
+                            <p class="card-text">{{ feature.description }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- How It Works -->
+            <div class="card mb-5">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0"><i class="fas fa-cogs me-2"></i>How It Works</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Workflow Process</h5>
+                            <ol class="list-group list-group-numbered">
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">Task Reception</div>
+                                        Supervisor receives and analyzes the user's request
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">🎯</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">Research Phase</div>
+                                        Researcher gathers relevant information and data
+                                    </div>
+                                    <span class="badge bg-info rounded-pill">🔍</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">Analysis Phase</div>
+                                        Analyst processes data and identifies insights
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">📊</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">Report Generation</div>
+                                        Writer creates comprehensive final report
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">✍️</span>
+                                </li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Key Features</h5>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <strong>Intelligent Coordination:</strong> Supervisor manages workflow efficiently
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <strong>Specialized Expertise:</strong> Each agent has distinct capabilities
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <strong>Comprehensive Output:</strong> Detailed research and analysis
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <strong>Real-time Processing:</strong> Live updates during execution
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <strong>Professional Reports:</strong> Structured, actionable outputs
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technology Stack -->
+            <div class="card mb-5">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="fas fa-code me-2"></i>Technology Stack</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fab fa-python fa-2x text-primary mb-2"></i>
+                                <h6>Backend</h6>
+                                <small>Django + LangChain + LangGraph</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-brain fa-2x text-success mb-2"></i>
+                                <h6>AI Engine</h6>
+                                <small>Groq + Multi-Agent System</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fab fa-html5 fa-2x text-warning mb-2"></i>
+                                <h6>Frontend</h6>
+                                <small>Bootstrap + JavaScript</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Get Started -->
+            <div class="text-center">
+                <h3 class="mb-3">Ready to Experience Multi-Agent AI?</h3>
+                <p class="mb-4">
+                    Start exploring the power of collaborative artificial intelligence today!
+                </p>
+                {% if user.is_authenticated %}
+                <a href="{% url 'chatbot:chat' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-comments me-2"></i>Start Chatting
+                </a>
+                {% else %}
+                <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-user-plus me-2"></i>Register Now
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

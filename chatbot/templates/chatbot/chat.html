@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        height: calc(100vh - 110px);
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f8f9fa;
+    }
+    .message {
+        margin-bottom: 1rem;
+        max-width: 80%;
+    }
+    .message.user {
+        margin-left: auto;
+    }
+    .message.ai {
+        margin-right: auto;
+    }
+    .message-content {
+        padding: 0.75rem 1rem;
+        border-radius: 1rem;
+        position: relative;
+    }
+    .message.user .message-content {
+        background: #007bff;
+        color: white;
+    }
+    .message.ai .message-content {
+        background: white;
+        border: 1px solid #dee2e6;
+    }
+    .agent-badge {
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+        opacity: 0.8;
+    }
+    .chat-input {
+        border-top: 1px solid #dee2e6;
+        padding: 1rem;
+        background: white;
+    }
+    .sidebar {
+        border-right: 1px solid #dee2e6;
+        background: white;
+        height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
+    .session-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .session-item:hover {
+        background: #f8f9fa;
+    }
+    .session-item.active {
+        background: #e3f2fd;
+    }
+    .typing-indicator {
+        display: none;
+    }
+    .typing-indicator.show {
+        display: block;
+    }
+    .loading-dots {
+        display: inline-block;
+    }
+    .loading-dots::after {
+        content: '...';
+        animation: dots 1.5s steps(5, end) infinite;
+    }
+    @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60% { content: '...'; }
+        90%, 100% { content: ''; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 sidebar">
+            <div class="p-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Chat Sessions</h5>
+                    <button class="btn btn-sm btn-primary" id="newChatBtn" title="Start New Chat">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <small class="text-muted">Your conversation history</small>
+            </div>
+
+            <div class="sessions-list">
+                {% for session in recent_sessions %}
+                <div class="session-item {% if session.id == current_session.id %}active{% endif %}"
+                     data-session-id="{{ session.id }}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">{{ session.title|truncatechars:25 }}</div>
+                            <small class="text-muted">{{ session.updated_at|timesince }} ago</small>
+                            <small class="d-block text-muted">{{ session.messages.count }} messages</small>
+                        </div>
+                        {% if session.id == current_session.id %}
+                        <span class="badge bg-success ms-2">Active</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-3 text-muted text-center">
+                    <i class="fas fa-comments fa-2x mb-2"></i>
+                    <p>No chat sessions yet.<br>Start a conversation!</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="p-3 border-top">
+                <a href="{% url 'chatbot:chat_sessions' %}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="fas fa-history me-1"></i>View All Sessions
+                </a>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="col-md-9 p-0">
+            <div class="chat-container">
+                <!-- Chat Header -->
+                <div class="chat-header p-3 border-bottom bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>
+                        Multi-Agent AI Assistant
+                    </h5>
+                    <small>{{ current_session.title }}</small>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai">
+                        <div class="agent-badge">
+                            <span class="badge bg-primary">🎯 System</span>
+                        </div>
+                        <div class="message-content">
+                            <p class="mb-0">
+                                Welcome! I'm your Multi-Agent AI Assistant. I have a team of specialized agents ready to help:
+                            </p>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>🔍 Researcher:</strong> Gathers comprehensive information</li>
+                                <li><strong>📊 Analyst:</strong> Analyzes data and provides insights</li>
+                                <li><strong>✍️ Writer:</strong> Creates detailed reports</li>
+                                <li><strong>🎯 Supervisor:</strong> Coordinates the workflow</li>
+                            </ul>
+                            <p class="mb-0 mt-2">
+                                Ask me anything and watch our agents collaborate to provide you with detailed, professional responses!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Typing Indicator -->
+                    <div class="message ai typing-indicator" id="typingIndicator">
+                        <div class="agent-badge">
+                            <span class="badge bg-secondary">🤖 Agents Working</span>
+                        </div>
+                        <div class="message-content">
+                            <span class="loading-dots">Agents are collaborating on your request</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input">
+                    <form id="chatForm" class="d-flex gap-2">
+                        <input type="text"
+                               class="form-control"
+                               id="messageInput"
+                               placeholder="Ask me anything... (e.g., 'Analyze the benefits of renewable energy')"
+                               autocomplete="off">
+                        <button type="submit" class="btn btn-primary" id="sendButton">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <small class="text-muted mt-1 d-block">
+                        Pro tip: Try asking for research, analysis, or complex topics for the best multi-agent experience!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const newChatBtn = document.getElementById('newChatBtn');
+
+        // New Chat Button Handler
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', function() {
+                if (confirm('Start a new chat session? This will save your current conversation.')) {
+                    // Show loading state
+                    newChatBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    newChatBtn.disabled = true;
+
+                    // Create new chat session
+                    fetch('{% url "chatbot:new_chat" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Redirect to new chat
+                                window.location.href = '{% url "chatbot:chat" %}?new=1';
+                            } else {
+                                alert('Error creating new chat: ' + (data.error || 'Unknown error'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error creating new chat. Please try again.');
+                        })
+                        .finally(() => {
+                            // Restore button state
+                            newChatBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                            newChatBtn.disabled = false;
+                        });
+                }
+            });
+        }
+
+        // Load existing messages
+        loadMessages();
+
+        // Form submission
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+                messageInput.value = '';
+            }
+        });
+
+        // Session switching
+        document.querySelectorAll('.session-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                const sessionId = this.dataset.sessionId;
+                if (sessionId && !this.classList.contains('active')) {
+                    // Navigate to session detail view which will set it as active
+                    window.location.href = `{% url 'chatbot:chat_session' 0 %}`.replace('0', sessionId);
+                }
+            });
+        });
+
+        function sendMessage(message) {
+            // Disable input
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message to chat
+            addMessage(message, 'user', 'user');
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Send to backend
+            fetch('{% url "chatbot:send_message" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ message: message })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideTypingIndicator();
+
+                    if (data.success) {
+                        // Add agent messages
+                        data.agent_messages.forEach(msg => {
+                            addMessage(msg.content, 'ai', msg.agent_type, msg.timestamp);
+                        });
+
+                        // Add final report if available
+                        if (data.final_report) {
+                            addFinalReport(data.final_report);
+                        }
+                    } else {
+                        addMessage('Sorry, I encountered an error: ' + (data.error || 'Unknown error'), 'ai', 'system');
+                    }
+                })
+                .catch(error => {
+                    hideTypingIndicator();
+                    addMessage('Sorry, I encountered a network error. Please try again.', 'ai', 'system');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    // Re-enable input
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    messageInput.focus();
+                });
+        }
+
+        function addMessage(content, type, agentType, timestamp) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const agentIcons = {
+                'supervisor': '🎯',
+                'researcher': '🔍',
+                'analyst': '📊',
+                'writer': '✍️',
+                'user': '👤',
+                'system': '🤖'
+            };
+
+            const agentColors = {
+                'supervisor': 'bg-danger',
+                'researcher': 'bg-info',
+                'analyst': 'bg-primary',
+                'writer': 'bg-success',
+                'user': 'bg-secondary',
+                'system': 'bg-dark'
+            };
+
+            messageDiv.innerHTML = `
+            ${type === 'ai' ? `
+                <div class="agent-badge">
+                    <span class="badge ${agentColors[agentType] || 'bg-secondary'}">
+                        ${agentIcons[agentType] || '🤖'} ${agentType.charAt(0).toUpperCase() + agentType.slice(1)}
+                    </span>
+                </div>
+            ` : ''}
+            <div class="message-content">
+                ${formatMessage(content)}
+            </div>
+        `;
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addFinalReport(report) {
+            const reportDiv = document.createElement('div');
+            reportDiv.className = 'message ai';
+            reportDiv.innerHTML = `
+            <div class="agent-badge">
+                <span class="badge bg-warning text-dark">📄 Final Report</span>
+            </div>
+            <div class="message-content">
+                <div class="border rounded p-3 bg-light">
+                    <pre style="white-space: pre-wrap; font-family: inherit;">${report}</pre>
+                </div>
+            </div>
+        `;
+            chatMessages.appendChild(reportDiv);
+            scrollToBottom();
+        }
+
+        function formatMessage(content) {
+            // Convert line breaks and format text
+            return content
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.classList.add('show');
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.classList.remove('show');
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function loadMessages() {
+            fetch('{% url "chatbot:get_messages" %}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.messages.length > 0) {
+                        // Clear welcome message
+                        chatMessages.innerHTML = '';
+
+                        data.messages.forEach(msg => {
+                            addMessage(msg.content, msg.message_type, msg.agent_type, msg.timestamp);
+
+                            // Add final report if available
+                            if (msg.final_report) {
+                                addFinalReport(msg.final_report);
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading messages:', error));
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Auto-focus input
+        messageInput.focus();
+    });
+</script>
+{% endblock %}
