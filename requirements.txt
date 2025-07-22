@@ -1,0 +1,6 @@
+pip install django
+pip install langchain
+pip install langchain-groq
+pip install langchain-community
+pip install langgraph
+pip install python-dotenv
